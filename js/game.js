@@ -135,13 +135,14 @@ function Game(spec){
         var url = window.location.href;
         if (url.includes("?")) url = url.slice(0, url.indexOf("?"));
 
+        url += "?=";
         url += "&f="+encodeURI(str);
 
         try {
 	        window.history.replaceState({}, "VectorJam | "+str, url);
         }
         catch (ex) {
-        	
+
         }
 	}
 
