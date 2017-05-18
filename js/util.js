@@ -28,6 +28,36 @@ function gaussian(mean, stdev) {
    }
 }
 
+function eulerIntegrate(position, velocity, acceleration, timeDelta){
+    velocity.x += acceleration.x*timeDelta;
+    velocity.y += acceleration.y*timeDelta;
+
+    position.x += velocity.x*timeDelta;
+    position.y += velocity.y*timeDelta;
+}
+
+function directIntegrate(position, velocity, timeDelta){
+    position.x += velocity.x*timeDelta;
+    position.y += velocity.y*timeDelta;
+}
+
+function verletIntegrate(position, oldPosition, acceleration, timeDelta){
+    var ox = oldPosition.x;
+    var oy = oldPosition.y;
+    oldPosition.x = position.x;
+    oldPosition.y = position.y;
+    position.x = 2*position.x-ox+acceleration.x*timeDelta*timeDelta;
+    position.y = 2*position.y-oy+acceleration.y*timeDelta*timeDelta;
+}
+
+function makeComplex(v){
+    if (v == null || typeof v.im === 'undefined') {
+        if (isNaN(v)) v = math.complex(0, 0);
+        else v = math.complex(v, 0);
+    }
+    return v;
+}
+
 function clamp01(value){
     return Math.max(0, Math.min(value, 1));
 }

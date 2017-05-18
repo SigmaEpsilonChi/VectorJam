@@ -35,7 +35,7 @@ function Layer(spec){
         canvas.width = width;
         canvas.height = height;
     }
-    
+
     var context = canvas.getContext('2d');
 
     var draw = function(parentContext){
@@ -59,6 +59,7 @@ function Layer(spec){
     }
 
     var update = function(time, timeDelta){
+        //console.log("%s is updating", name);
         for (var i = 0; i < components.length; i++) {
             if (components[i].update) dirty = (components[i].update(time, timeDelta) == true) || dirty;
         }
@@ -170,10 +171,12 @@ function Layer(spec){
         onMouseUp,
     });
 
+    console.log("Creating layer: %s", name);
     if (parent != null) {
-        //console.log("Adding %s to %s children", name, parent.name);
+        console.log("Adding %s to %s children", name, parent.name);
         parent.addChild(tr);
     }
+
 
     return tr;
 }

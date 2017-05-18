@@ -4,6 +4,7 @@ function Game(spec){
 		maximum,
 		resolution,
 		input,
+		timer,
 	} = spec;
 
 	canvas.width = resolution;
@@ -42,6 +43,15 @@ function Game(spec){
     	console.log("Reading queryExpression: "+queryExpression);
     }
 
+    // Set up Weathervane to evaluate and draw the vector field
+
+    var weathervane = Weathervane({
+    	maximum,
+    	resolution,
+    	mainLayer,
+    	evaluate: field.evaluate,
+    });
+
     var start = function(){
         timeDelta = 1/FPS;
         timerId = setInterval(function() {
@@ -63,6 +73,7 @@ function Game(spec){
 
     var update = function() {
         time = time+timeDelta;
+        timer.innerHTML = "T = "+trunc(time, 1);
 		/*
 		var newDate = new Date();
 		time = newDate/1000;
@@ -85,6 +96,10 @@ function Game(spec){
         context.clearRect(0, 0, resolution, resolution);
     }
 
+	var onMouseMove = function(event){
+		mainLayer.onMouseMove(event);
+	}
+
 	var onMouseDown = function(event){
 		mainLayer.onMouseDown(event);
 	}
@@ -92,11 +107,6 @@ function Game(spec){
 	var onMouseUp = function(event){
 		mainLayer.onMouseUp(event);
 	}
-
-	var onMouseMove = function(event){
-		mainLayer.onMouseUp(event);
-	}
-
 	var onTouchStart = function(event){
 	    event.preventDefault();
 	    var touch = event.touches[0];
@@ -122,6 +132,14 @@ function Game(spec){
 	    canvas.dispatchEvent(mouseEvent);
 	}
 
+	var onPointerEnter = function(event){
+		weathervane.setShow(true);
+	}
+
+	var onPointerExit = function(event){
+		weathervane.setShow(false);
+	}
+
 	var onTouchCancel = function(event){
 	    var mouseEvent = new MouseEvent("mouseup");
 	    canvas.dispatchEvent(mouseEvent);
@@ -131,6 +149,7 @@ function Game(spec){
 		var str = input.value;
         console.log("Function changing to %s", str);
         field.setExpression(str);
+        court.reset();
 
         var url = window.location.href;
         if (url.includes("?")) url = url.slice(0, url.indexOf("?"));
@@ -144,23 +163,34 @@ function Game(spec){
         catch (ex) {
 
         }
+        time = 0;
 	}
+
+	var court = Court({
+		maximum,
+		resolution,
+		mainLayer,
+		evaluate: field.evaluate,
+	});
+
+    canvas.addEventListener("mouseenter", onPointerEnter, false);
+    canvas.addEventListener("mouseleave", onPointerExit, false);
+    canvas.addEventListener("mouseout", onPointerExit, false);
 
     canvas.addEventListener("mousedown", onMouseDown, false);
     canvas.addEventListener("mouseup", onMouseUp, false);
     canvas.addEventListener("mousemove", onMouseMove, false);
+
     canvas.addEventListener("touchstart", onTouchStart, false);
     canvas.addEventListener("touchend", onTouchEnd, false);
     canvas.addEventListener("touchcancel", onTouchCancel, false);
     canvas.addEventListener("touchmove", onTouchMove, false);
-
 
     start();
 
     // Set up function input element
     input.addEventListener("change", onFunctionChange, false);
     input.style.width = canvas.style.width;
-    input.style.height = 20;
 
     onFunctionChange();
 
