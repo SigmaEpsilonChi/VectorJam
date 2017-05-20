@@ -38,19 +38,26 @@ function Ball(spec){
 	var white = "#FFF";
 	var orange = "#F80";
 	var blue = "#0FF";
+	var black = "#000";
 
 	var radius = 0.5;
+
+	var simulate = false;
 
 	var draw = function(context){
 		context.beginPath();
 		var x0 = transformX(position.x);
 		var y0 = transformY(position.y);
 
-		context.strokeStyle = orange;
-		context.fillStyle = orange;
+		context.strokeStyle = black;
+		context.fillStyle = "#BFF";
+		context.lineWidth = 2;
 		context.beginPath();
 		context.arc(x0, y0, scaleX(radius), 0, math.pi*2);
 		context.fill();
+		context.stroke();
+
+
 	}
 
 	var update = function(time, timeDelta){
@@ -69,6 +76,8 @@ function Ball(spec){
 
 	var tick = function(time, timeDelta, context, eval = true){
 		var tr = true;
+
+		if (!simulate) return false;
 
 		if (eval) {
 			scope.x = position.x;
@@ -104,6 +113,7 @@ function Ball(spec){
 		position.y = origin.y;
 		velocity.x = 0;
 		velocity.y = 0;
+		layer.refresh();
 	}
 
 	var setPosition = function(POSITION){
@@ -144,7 +154,25 @@ function Ball(spec){
 
 	var destroy = function(){
 		layer.removeComponent(component);
+		unsubscribe(resetScope);
+		unsubscribe(onSetPlayState);
+
+		layer.refresh();
 	}
+
+	var onSetPlayState = function(playState){
+		simulate = playState;
+		if (playState) {
+			reset();
+		}
+		else {
+			reset();
+		}
+	}
+	subscribe("/setPlayState", onSetPlayState);
+
+	var resetScope = function(getBlankScope){scope = getBlankScope();}
+	subscribe("/scopes/reset", resetScope);
 
 	reset();
 	//age = Math.random()*ageLimit;

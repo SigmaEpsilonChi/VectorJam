@@ -7,6 +7,8 @@ html{
     padding: 0;
 }
 body{
+    font-family: Verdana, Geneva, sans-serif;
+
     width:100%;
     height:100%;
     background-color:#FFFFFF;
@@ -19,27 +21,197 @@ canvas {
     touch-action: none;
 }
 
-.bottom {
-    position: relative;
-    width: 640px;
+.content {
+    display: flex;
+    align-items: stretch;
 
+
+    position: relative;
+    /*width: 512px;*/
+    height: 512px;
+
+
+}
+
+.mainCanvas {
+    display: flex;
+    /*position: absolute;*/
+
+    width: inherit;
+    height: inherit;
+
+    border: 1px solid black;
+}
+
+.codex {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: flex-end;
+
+    width: inherit;
+    height: inherit;
+
+    /*position: relative;*/
+    /*left: 0;*/
+
+    transition: 0.7s;
+
+    z-index: 2;
+
+    pointer-events: none;
+}
+
+.appendButton {
+    width: 32px;
+    height: 32px;
+    
+    margin: 4px 4px 12px 12px;
+    line-height: 32px;
+    text-align: center;
+    font-weight: bold;
+
+    transition: 0.2s;
+    cursor: pointer;
+
+    background-color: #0DD;
+    border-radius: 16px;
+
+    pointer-events: all;
+}
+
+
+.appendButton:hover {
+    background-color: #2FF;
+}
+
+.codex > .assignments {
+    display: flex;
+    flex-direction: column-reverse;
+
+    width: 50%;
+
+    transition: 0.2s;
+
+    /*opacity: 0.5;*/
+}
+
+.codex > .assignments:hover {
+    opacity: 1;
+}
+
+.codex > .assignments > .definition {
+    margin: 4px;
+
+    pointer-events: all;
+}
+
+.codex > .assignments > .definition > .container {
+    display: flex;
+    position: relative;
+    margin: 0;
+}
+
+.codex > .assignments > .definition > .container > .label {
+    padding: 4px 8px;
+    
+    cursor: pointer;
+
+    color: #222;
+    background-color: #888;
+    text-align: center;
+
+    border-top-left-radius: 8px;
+    border-bottom-left-radius: 8px;
+    
+    -webkit-user-select: none; /* Chrome/Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+ */
+
+}
+
+.codex > .assignments > .definition > .container > .field {
+    flex-grow: 1;
+
+    padding: 0px 8px;
+
+    border: 2px solid #888;
+
+    border-top-right-radius: 8px;
+    border-bottom-right-radius: 8px;
+
+    opacity: 1;
+}
+
+.controls {
+    display: flex;
+    align-items: stretch;
+
+    float: bottom;
+    width: 100%;
 }
 
 #functionField {
     display: block;
-    width: 100%;
-    height: 20px;
+    flex-grow: 1;
 }
 
 #timer {
-    font-family: arial, sans-serif;
-
-    position: absolute;
-    right: 10px;
-    top: -25px;
-
     color: #FFF;
 }
+
+.bottom {
+    display: flex;
+
+    width: inherit;
+    height: 0;
+
+    z-index: 1;
+}
+
+.button {
+    padding: 4px;
+
+    color: #FFF;
+    background-color: #073;
+    cursor: pointer;
+    
+    transition: 0.5s;
+    text-align: center;
+    
+    -webkit-user-select: none; /* Chrome/Safari */
+    -moz-user-select: none; /* Firefox */
+    -ms-user-select: none; /* IE10+ */
+}
+.button:hover {
+    background-color: #0C6;
+}
+
+#playButton {
+    display: flex;
+
+    /*position: absolute;*/
+    padding: 0px 8px;
+    margin: 4px;
+
+    /*width: 30px;*/
+    height: 30px;
+    /*bottom: 10px;*/
+    /*right: 10px;*/
+
+    line-height: 30px;
+    font-size: 16px;
+    text-align: center;
+
+    border-radius: 10px;
+
+    z-index: 3;
+
+    pointer-events: all;
+}
+
+
+
 </style>
     <html>
     <head>
@@ -48,7 +220,10 @@ canvas {
 
         <script language="javascript" src="./libs/lz/lz-string.js" type="text/javascript"></script>
         <script language="javascript" src="./libs/mathjs/dist/math.js" type="text/javascript"></script>
+        <script language="javascript" src="./libs/minpubsub/minpubsub.js" type="text/javascript"></script>
 
+        <script language="javascript" src="./js/definition.js" type="text/javascript"></script>
+        <script language="javascript" src="./js/codex.js" type="text/javascript"></script>
         <script language="javascript" src="./js/ball.js" type="text/javascript"></script>
         <script language="javascript" src="./js/cloud.js" type="text/javascript"></script>
         <script language="javascript" src="./js/court.js" type="text/javascript"></script>
@@ -64,32 +239,60 @@ canvas {
         <link rel="icon" type="image/png" href="/favicon.png"/>
     </head>
     <body>
-        <canvas width="640" height="640" id="canvas">
-            Canvas tag not supported... gee, that's really too bad. You should use a different browser!
-        </canvas>
         
-        <div class="bottom" id="bottom">
-            <div class="timer" id="timer"></div>
-            <input class="field" id="functionField" type="text" value="p*i">
+        <div class="content" id="content">
+            <canvas class="mainCanvas" id="canvas">
+                Canvas tag not supported... gee, that's really too bad. You should use a different browser!
+            </canvas>
+
+            <div class="codex" id="codex">
+                <div class="appendButton">+</div>
+                <div class="assignments">    
+                    <div class="definition" id="definitionTemplate">
+                        <div class="container">
+                            <div class="label">&#9776;</div>
+                            <input class="field" type="text" value="0">
+                        </div>
+                    </div>
+                </div>
+                <div class="button" id="playButton">
+                    <div class="timer" id="timer">T = 0</div>
+                </div>
+            </div>
+
+            <div class="bottom" id="bottom">
+                <!-- <div class="timer" id="timer">T = 0</div> -->
+
+            </div>
         </div>
 
         <script type='text/javascript'>
-            var root_canvas = document.getElementById("canvas");;
-            var root_context = root_canvas.getContext("2d");
+            let canvas = document.getElementById("canvas");;
+            let context = canvas.getContext("2d");
 
-            var root_resolution = getQueryString("res");
-            if (root_resolution == null) root_resolution = 640;
-            else root_resolution = parseInt(root_resolution);
+            let resolution = getQueryString("res");
+            if (resolution == null) resolution = 512;
+            else resolution = parseInt(resolution);
 
-            var root_input = document.getElementById("functionField");
-            var root_timer = document.getElementById("timer");
 
-            var root_game = Game({
-                canvas: root_canvas,
-                resolution: root_resolution,
+            let content = document.getElementById("content");
+            content.width = resolution+"px";
+            content.height = resolution+"px";
+
+            let timer = document.getElementById("timer");
+            let playButton = document.getElementById("playButton");
+
+            let codexElement = document.getElementById("codex");
+            let definitionTemplate = document.getElementById("definitionTemplate");
+
+            let game = Game({
+                canvas,
+                resolution,
                 maximum: 8,
-                input: root_input,
-                timer: root_timer,
+                timer,
+                playButton,
+                codexElement,
+                definitionTemplate,
             });
 
         </script>

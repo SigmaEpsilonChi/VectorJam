@@ -3,8 +3,10 @@ function Game(spec){
 		canvas,
 		maximum,
 		resolution,
-		input,
 		timer,
+		playButton,
+		codexElement,
+		definitionTemplate,
 	} = spec;
 
 	canvas.width = resolution;
@@ -17,6 +19,10 @@ function Game(spec){
         canvas,
     });
 
+    var playState = false;
+    var playTime = 0;
+    var playStartTime = 0;
+
     var time = 0;
     var timeDelta;
     var drawTime = 0;
@@ -26,31 +32,6 @@ function Game(spec){
     var animationTimestamp = 0;
 
     var date = new Date();
-
-    // Set up Field to evaluate and draw the vector field
-
-    var field = Field({
-    	maximum,
-    	resolution,
-    	mainLayer,
-    });
-
-    var queryExpression = getQueryString("f");
-    if (queryExpression != null) {
-    	queryExpression = decodeURI(queryExpression);
-    	//field.setExpression(queryExpression);
-    	input.value = queryExpression;
-    	console.log("Reading queryExpression: "+queryExpression);
-    }
-
-    // Set up Weathervane to evaluate and draw the vector field
-
-    var weathervane = Weathervane({
-    	maximum,
-    	resolution,
-    	mainLayer,
-    	evaluate: field.evaluate,
-    });
 
     var start = function(){
         timeDelta = 1/FPS;
@@ -73,7 +54,11 @@ function Game(spec){
 
     var update = function() {
         time = time+timeDelta;
-        timer.innerHTML = "T = "+trunc(time, 1);
+
+        if (playState) {
+        	playTime = time-playStartTime;
+        	timer.innerHTML = "T = "+trail(trunc(playTime, 1));
+        }
 		/*
 		var newDate = new Date();
 		time = newDate/1000;
@@ -94,6 +79,22 @@ function Game(spec){
 
     var clear = function(){
         context.clearRect(0, 0, resolution, resolution);
+    }
+
+    var setPlayState = function(PLAYSTATE){
+    	if (playState != PLAYSTATE) {
+    		playState = PLAYSTATE;
+    		if (playState) {
+    			playStartTime = time;
+	    		publish("/setPlayState", [true, time]);
+    		}
+    		else {
+    			playTime = 0;
+    			playStartTime = -1;
+        		timer.innerHTML = "T = 0";
+	    		publish("/setPlayState", [false, time]);
+    		}
+    	}
     }
 
 	var onMouseMove = function(event){
@@ -133,11 +134,11 @@ function Game(spec){
 	}
 
 	var onPointerEnter = function(event){
-		weathervane.setShow(true);
+		field.weathervane.setShow(true);
 	}
 
 	var onPointerExit = function(event){
-		weathervane.setShow(false);
+		field.weathervane.setShow(false);
 	}
 
 	var onTouchCancel = function(event){
@@ -145,26 +146,67 @@ function Game(spec){
 	    canvas.dispatchEvent(mouseEvent);
 	}
 
-	var onFunctionChange = function(){
-		var str = input.value;
-        console.log("Function changing to %s", str);
-        field.setExpression(str);
-        court.reset();
+	var onPlayButtonClick = function(){
+		setPlayState(!playState);
+	}
 
+	var getSpec = function(){
+		var tr = {};
+		publish("/spec/write", [tr]);
+		return tr;
+	}
+
+	var getSpecString = function(){
+        var spec = getSpec();
+    	var tr = JSON.stringify(spec);
+    	tr = LZString.compressToBase64(tr);
+    	return tr;
+	}
+
+	var getUrl = function(){
         var url = window.location.href;
         if (url.includes("?")) url = url.slice(0, url.indexOf("?"));
 
         url += "?=";
-        url += "&f="+encodeURI(str);
+        url += "&spec="+getSpecString();
 
-        try {
-	        window.history.replaceState({}, "VectorJam | "+str, url);
-        }
-        catch (ex) {
-
-        }
-        time = 0;
+        return url;
 	}
+
+	var writeUrl = function(){
+	    window.history.replaceState({}, "VectorJam", getUrl());
+	}
+
+	var readUrl = function(){
+    	var specString = getQueryString("spec");
+
+    	if (specString != null) {
+	    	var str = LZString.decompressFromBase64(specString);
+	    	var spec = JSON.parse(str);
+
+			publish("/spec/read", [spec]);
+			return true;
+    	}
+    	return false;
+	}
+
+    // Set up Field to evaluate and draw the vector field
+
+    var field = Field({
+    	maximum,
+    	resolution,
+    	mainLayer,
+    });
+
+    // Set up codex, which manages definitions
+
+    var codex = Codex({
+    	codexElement,
+    	definitionTemplate,
+    	field,
+    });
+
+    // Set up court, which manages balls
 
 	var court = Court({
 		maximum,
@@ -172,6 +214,8 @@ function Game(spec){
 		mainLayer,
 		evaluate: field.evaluate,
 	});
+
+	subscribe("/codex/refresh", writeUrl);
 
     canvas.addEventListener("mouseenter", onPointerEnter, false);
     canvas.addEventListener("mouseleave", onPointerExit, false);
@@ -186,13 +230,18 @@ function Game(spec){
     canvas.addEventListener("touchcancel", onTouchCancel, false);
     canvas.addEventListener("touchmove", onTouchMove, false);
 
+    playButton.addEventListener("click", onPlayButtonClick, false);
+
+    //if (!readUrl()) codex.refreshCodex();
+
+    field.resetScopes();
+
     start();
 
-    // Set up function input element
-    input.addEventListener("change", onFunctionChange, false);
-    input.style.width = canvas.style.width;
+    readUrl();
+    writeUrl();
 
-    onFunctionChange();
+    //onFunctionChange();
 
     return Object.freeze({
 

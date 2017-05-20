@@ -4,6 +4,7 @@ function Spinner(spec){
 		resolution,
 		evaluate,
 		spinnerIndex,
+		getMaxMagnitude,
 		density,
 		layer,
 	} = spec;
@@ -41,22 +42,77 @@ function Spinner(spec){
 	var targetAngle = 0;
 
 	var white = "#FFF";
+	var grey = "#EEE";
 	var black = "#000";
 	var orange = "#F80";
 	var cyan = "#08F";
 
 	var draw = function(context){
-		var m = 1-1/(1+Math.sqrt(sample.abs())/2);
-		var s = sample.sign().mul(m);
+		var maxMagnitude = getMaxMagnitude();
+		var m = sample.abs()/(maxMagnitude*2);
+		//var m = 1-1/(1+Math.sqrt(sample.abs())/2);
+		var s = sample.sign().mul(m*2/3);
 		var a = lerp(math.pi, math.pi*2/3, m);
 		rotator = math.complex({r: 1, phi: a});
 		corner0 = math.add(s, center);
 		corner1 = math.add(math.multiply(s, rotator), center);
 		corner2 = math.add(math.divide(s, rotator), center);
 
+		var offset = math.add(center, sample);
+
 		corner3.re = center.re;
 		corner3.im = center.im;
 
+		
+		context.beginPath();
+		context.moveTo(
+			x = transformX(corner1.re),
+			y = transformY(corner1.im),
+		);
+		context.lineTo(
+			x = transformX(corner0.re),
+			y = transformY(corner0.im),
+		);
+		context.lineTo(
+			x = transformX(corner2.re),
+			y = transformY(corner2.im),
+		);
+		context.lineTo(
+			x = transformX(corner1.re),
+			y = transformY(corner1.im),
+		);
+
+		context.strokeStyle = black;
+		context.fillStyle = white;
+		context.fill();
+		context.stroke();
+		
+/*		
+		context.beginPath();
+		context.moveTo(
+			transformX(center.re),
+			transformY(center.im),
+		);
+		context.lineTo(
+			transformX(corner0.re),
+			transformY(corner0.im),
+		);
+
+		context.strokeStyle = "#000";
+		context.stroke();
+
+		context.beginPath();
+		context.arc(
+			transformX(center.re),
+			transformY(center.im),
+			scaleX(0.1*m),
+			0,
+			math.pi*2
+		);
+		context.fillStyle = "#888";
+		context.fill();
+		*/
+/*
 		context.beginPath();
 		context.moveTo(
 			x = transformX(corner0.re),
@@ -78,12 +134,17 @@ function Spinner(spec){
 			x = transformX(corner0.re),
 			y = transformY(corner0.im),
 		);
+		context.lineTo(
+			x = transformX(corner3.re),
+			y = transformY(corner3.im),
+		);
 
-		context.strokeStyle = white;
-		context.fillStyle = black;
+		context.strokeStyle = black;
+		context.fillStyle = "#FEB";
 		context.fill();
 		context.stroke();
 		//console.log("Drawing spinner %s: %s, %s", spinnerIndex, xIndex, yIndex);
+*/
 	}
 
 	var update = function(time, timeDelta){
@@ -110,6 +171,10 @@ function Spinner(spec){
 	var reset = function(){
 	}
 
+	var getSample = function(){
+		return sample;
+	}
+
 	var scaleX = function(v){
 		return v*resolution/maximum;
 	}
@@ -134,6 +199,14 @@ function Spinner(spec){
 		return remap(resolution, 0, -maximum, maximum, v);
 	}
 
+
+	var resetScope = function(getBlankScope){scope = getBlankScope();}
+	subscribe("/scopes/reset", resetScope);
+
+	var destroy = function(){
+		unsubscribe(resetScope);
+	}
+
 	reset();
 
 	layer.addComponent({
@@ -147,5 +220,8 @@ function Spinner(spec){
 
 		// Methods
 		tick,
+		destroy,
+
+		getSample,
 	});
 }

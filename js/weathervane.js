@@ -25,6 +25,8 @@ function Weathervane(spec){
 		p: math.complex(0, 0),
 	}
 
+	var playTime = -1;
+
 	var layer = Layer({
 		name: "Weathervane Layer",
 		parent: mainLayer,
@@ -82,7 +84,8 @@ function Weathervane(spec){
 	}
 
 	var update = function(time, timeDelta){
-		scope.t = time;
+		if (playTime < 0) scope.t = 0;
+		else scope.t = time-playTime;
 		return true;
 	}
 
@@ -125,6 +128,24 @@ function Weathervane(spec){
 		}
 	}
 
+	var resetScope = function(getBlankScope){scope = getBlankScope();}
+	subscribe("/scopes/reset", resetScope);
+
+	var onSetPlayState = function(playState, time){
+		if (playState) {
+			playTime = time;
+		}
+		else {
+			playTime = -1;
+		}
+	}
+	subscribe("/setPlayState", onSetPlayState);
+
+	var destroy = function(){
+		unsubscribe(resetScope);
+		unsubscribe(onSetPlayState);
+	}
+
 	layer.addComponent({
 		draw,
 		update,
@@ -139,5 +160,6 @@ function Weathervane(spec){
 
 		// Methods
 		setShow,
+		destroy,
 	});
 }

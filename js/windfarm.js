@@ -12,16 +12,18 @@ function Windfarm(spec){
 		layerIndex: 1,
 	});
 
-	var tickTime = 0;
+	var tickTime = -1;
 	var tickMeter = 0;
 	var tickInterval = 1/20;
 	var tickCount = 0;
 	var tickWeave = 1;
 
-	var density = 7;
+	var density = 15;
 	var spinners = [];
 	var spinnerCount = density*density;
 	var queueIndex = 0;
+
+	var maxMagnitude = 0;
 
 	var draw = function(context){
 		//context.drawImage(particleCanvas, 0, 0);
@@ -41,13 +43,17 @@ function Windfarm(spec){
 	// Returns true if any spinners change value
 	var tickSpinners = function(){
 		var tr = false;
-		//console.log("Ticking field spinners...");
+
+		maxMagnitude = 0;
+
 		tickMeter -= tickInterval;
-		tickTime += tickInterval;
+		if (tickTime >= 0) tickTime += tickInterval;
+
 		var eval;
 		for (var i = 0; i < spinners.length; i++) {
 			eval = (tickCount+i)%tickWeave < 1;
-			tr = spinners[i].tick(tickTime, tickInterval, eval) || tr;
+			tr = spinners[i].tick(Math.max(tickTime, 0), tickInterval, eval) || tr;
+			maxMagnitude = Math.max(maxMagnitude, spinners[i].getSample().abs());
 		}
 		tickCount++;
 		return tr;
@@ -65,6 +71,18 @@ function Windfarm(spec){
 
 	var getDensity = function(){return density;}
 
+	var getMaxMagnitude = function(){return maxMagnitude;}
+
+	var onSetPlayState = function(playState, time){
+		if (playState) {
+			tickTime = 0;
+		}
+		else {
+			tickTime = -1;
+		}
+	}
+	subscribe("/setPlayState", onSetPlayState);
+
 	layer.addComponent({
 		draw,
 		update,
@@ -80,6 +98,7 @@ function Windfarm(spec){
 			resolution,
 			evaluate,
 			spinnerIndex,
+			getMaxMagnitude,
 			density,
 			layer,
 		}));

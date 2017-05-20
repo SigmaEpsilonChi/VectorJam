@@ -156,6 +156,11 @@ function distance(a, b){
 function trunc(x, p=2){
     return Math.round(x*Math.pow(10, p))/Math.pow(10, p);
 }
+function trail(x){
+    var str = x.toString();
+    if (!str.includes('.')) str = str+".0";
+    return str;
+}
 
 function manhattan(a, b){
     return Math.abs(a.x-b.x)+Math.abs(a.y-b.y);

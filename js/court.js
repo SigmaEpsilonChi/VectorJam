@@ -12,7 +12,7 @@ function Court(spec){
 		layerIndex: 2,
 	});
 
-	var tickTime = 0;
+	var tickTime = -1;
 	var tickMeter = 0;
 	var tickInterval = 1/10;
 	var tickCount = 0;
@@ -40,20 +40,15 @@ function Court(spec){
 		var tr = false;
 		//console.log("Ticking field spinners...");
 		tickMeter -= tickInterval;
-		tickTime += tickInterval;
+		if (tickTime >= 0) tickTime += tickInterval;
 		var eval;
 		for (var i = 0; i < balls.length; i++) {
 			eval = (tickCount+i)%tickWeave < 1;
-			tr = balls[i].tick(tickTime, tickInterval, eval) || tr;
+			tr = balls[i].tick(Math.max(tickTime, 0), tickInterval, eval) || tr;
 		}
 		tickCount++;
 		return tr;
 	}
-
-	layer.addComponent({
-		draw,
-		update,
-	});
 
 	var setBallCount = function(ballCount){
 		while (balls.length > ballCount) {
@@ -81,6 +76,24 @@ function Court(spec){
 			balls[i].reset();
 		}
 	}
+
+	var onSetPlayState = function(playState){
+		if (playState) {
+			tickTime = 0;
+			reset();
+		}
+		else {
+			tickTime = -1;
+			reset();
+		}
+	}
+
+	subscribe("/setPlayState", onSetPlayState);
+
+	layer.addComponent({
+		draw,
+		update,
+	});
 
 	setBallLayout([
 		{

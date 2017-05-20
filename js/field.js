@@ -5,8 +5,7 @@ function Field(spec){
 		mainLayer,
 	} = spec;
 
-	var expressionString = null;
-	var expressionTree = null;
+	var expressions = [];
 
 	var draw = function(context){
 	}
@@ -16,38 +15,61 @@ function Field(spec){
 		return tr;
 	}
 
-	var setExpression = function(EXPRESSIONSTRING){
+	var clearExpressions = function(){
+		expressions.length = 0;
+	}
+
+	var pushExpression = function(expressionString){
 		var tr = false;
-		if (expressionString != EXPRESSIONSTRING) {
-			expressionString = EXPRESSIONSTRING;
-	        try {
-				expressionTree = math.compile(expressionString);
-				tr = true;
-	        }
-	        catch (ex) {
-				tr = false;
-	        }
-			
-		}
-		return tr;
+		//console.log("Pushing expression: %s", expressionString);
+		if (expressionString.startsWith("//")) return true;
+        try {
+			var expression = math.compile(expressionString);
+			expressions.push(expression);
+			tr = true;
+        }
+        catch (ex) {
+			tr = false;
+        }
+        return tr;
 	}
 
 	var evaluate = function(scope){
-		try {
-			return expressionTree.eval(scope);
+		if (expressions.length == 0) return 0;
+
+		var tr = 0;
+		for (var i = 0; i < expressions.length; i++) {
+			try {
+				tr = expressions[i].eval(scope);
+			}
+        	catch (ex) {
+				tr = 0;
+	        }
        	}
-        catch (ex) {
-			return math.complex(0, 0);
-        }
+        return tr;
 	}
 
-	setExpression("x*i");
+	var getBlankScope = function(){
+		return {
+			x: 0,
+			y: 0,
+			t: 0,
+			m: 0,
+			d: math.complex(0, 0),
+			p: math.complex(0, 0),
+		}
+	}
+
+	var resetScopes = function(){
+	    publish("/scopes/reset", [getBlankScope]);
+	}
 
 	var windfarm = Windfarm({
 		maximum,
 		resolution,
 		evaluate,
 		mainLayer,
+		getBlankScope,
 	});
 
 	var cloud = Cloud({
@@ -56,14 +78,27 @@ function Field(spec){
 		evaluate,
 		mainLayer,
 		getSpinner: windfarm.getSpinner,
+		getBlankScope,
 	});
+
+    var weathervane = Weathervane({
+    	maximum,
+    	resolution,
+    	mainLayer,
+    	evaluate,
+		getBlankScope,
+    });
 
 	return Object.freeze({
 		// Fields
-
+		windfarm,
+		cloud,
+		weathervane,
 
 		// Methods
-		setExpression,
+		pushExpression,
+		clearExpressions,
 		evaluate,
+		resetScopes,
 	})
 }

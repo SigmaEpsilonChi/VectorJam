@@ -25,14 +25,7 @@ function Particle(spec){
 		y: 0,
 	}
 
-	var scope = {
-		x: 0,
-		y: 0,
-		t: 0,
-		m: 0,
-		d: math.complex(0, 0),
-		p: math.complex(0, 0),
-	}
+	var scope = {};
 
 	var age = 0;
 	var ageLimit = 4;
@@ -42,6 +35,7 @@ function Particle(spec){
 	var white = "#FFF";
 	var orange = "#F80";
 	var blue = "#0FF";
+	var black = "#000";
 
 	var grid = false;
 	var aged = false;
@@ -117,6 +111,8 @@ function Particle(spec){
 			var spinner = getSpinner(-1);
 			position.x = spinner.center.re;
 			position.y = spinner.center.im;
+			position.x += 0.5;
+			position.y += 0.5;
 		}
 		else {
 			ageLimit = distro();
@@ -150,6 +146,14 @@ function Particle(spec){
 		return remap(resolution, 0, -maximum, maximum, v);
 	}
 
+	var resetScope = function(getBlankScope){scope = getBlankScope();}
+	subscribe("/scopes/reset", resetScope);
+
+	var destroy = function(){
+		unsubscribe(resetScope);
+	}
+
+
 	reset();
 	//age = Math.random()*ageLimit;
 	age = lerp(0, ageLimit, particleIndex/particleCount);
@@ -159,5 +163,6 @@ function Particle(spec){
 
 		// Methods
 		tick,
+		destroy,
 	});
 }

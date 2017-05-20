@@ -5,6 +5,7 @@ function Cloud(spec){
 		evaluate,
 		mainLayer,
 		getSpinner,
+		getBlankScope,
 	} = spec;
 
 	var layer = Layer({
@@ -13,13 +14,13 @@ function Cloud(spec){
 		layerIndex: 0,
 	});
 
-	var tickTime = 0;
+	var tickTime = -1;
 	var tickMeter = 0;
 	var tickInterval = 1/30;
 	var tickCount = 0;
-	var tickWeave = 8;
+	var tickWeave = 2;
 
-	var particleCount = 1024;
+	var particleCount = 512;
 	var particles = [];
 
 	// Particles are incrementally drawn to a separate canvas
@@ -30,10 +31,12 @@ function Cloud(spec){
     particleCanvas.width = resolution;
     particleCanvas.height = resolution;
 
-    particleContext.fillStyle = "rgba(0, 0, 0, 0.03)";
     //particleContext.strokeStyle = "#FF8000";
-    particleContext.strokeStyle = "#08F";
     particleContext.lineWidth = 1;
+    particleContext.lineCap = 'square';
+    particleContext.strokeStyle = "#888";
+
+    var washCycle = 0;
 
 	var draw = function(context){
 		context.drawImage(particleCanvas, 0, 0);
@@ -54,16 +57,57 @@ function Cloud(spec){
 	var tickParticles = function(){
 		//console.log("Ticking field particles...");
 		tickMeter -= tickInterval;
-		tickTime += tickInterval;
+		if (tickTime >= 0) tickTime += tickInterval;
 		// Fade the particle canvas, then tick each particle
-		particleContext.fillRect(0, 0, resolution, resolution);
+  		//particleContext.globalCompositeOperation = "lighter";
+
+  		washCycle = (washCycle+1)%4;
+  		if (washCycle == 0) wash();
+
+  		fade();
+
 		var eval;
 		for (var i = 0; i < particles.length; i++) {
 			eval = (tickCount+i)%tickWeave < 1;
-			particles[i].tick(tickTime, tickInterval, particleContext, eval);
+			particles[i].tick(Math.max(tickTime, 0), tickInterval, particleContext, eval);
 		}
 		tickCount++;
 	}
+
+	var clear = function(){
+  		particleContext.globalCompositeOperation = "source-over";
+    	particleContext.fillStyle = "rgba(255, 255, 255, 1)";
+		particleContext.fillRect(0, 0, resolution, resolution);
+	}
+
+	var wash = function(){
+		particleContext.globalCompositeOperation = "lighter";
+		particleContext.fillStyle = "rgba(1, 1, 1, 1)";
+		particleContext.fillRect(0, 0, resolution, resolution);
+	}
+
+	var fade = function(){
+  		particleContext.globalCompositeOperation = "source-over";
+    	particleContext.fillStyle = "rgba(255, 255, 255, 0.03)";
+		particleContext.fillRect(0, 0, resolution, resolution);
+	}
+
+	var onSetPlayState = function(playState, time){
+		if (playState) {
+			tickTime = 0;
+			clear();
+		}
+		else {
+			tickTime = -1;
+			clear();
+		}
+	}
+	subscribe("/setPlayState", onSetPlayState);
+
+
+	subscribe("/scopes/reset", clear);
+
+	clear();
 
 	layer.addComponent({
 		draw,
@@ -78,6 +122,7 @@ function Cloud(spec){
 			particleCount,
 			particleIndex: i,
 			getSpinner,
+			getBlankScope,
 		}));
 	}
 
